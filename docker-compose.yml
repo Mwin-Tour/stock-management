@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: gestion-stock-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: gestion_stock
+    volumes:
+      - gestion-stock-mysql-data:/var/lib/mysql
+    networks:
+      - gestion-stock-network
+
+  app:
+    build: .
+    container_name: gestion-stock-app
+    depends_on:
+      - mysql
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: root
+    networks:
+      - gestion-stock-network
+
+volumes:
+  gestion-stock-mysql-data:
+
+networks:
+  gestion-stock-network:

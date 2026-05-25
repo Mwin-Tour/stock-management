@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Commandes</title>
+    <link rel="stylesheet" href="/bootstrap-icons/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f5f7fa;
+        }
+        .sidebar {
+            background-color: #1e293b;
+            min-height: 100vh;
+            color: white;
+        }
+        .sidebar a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            padding: 12px;
+        }
+        .sidebar a:hover {
+            background-color: #334155;
+        }
+        .card-icon {
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-2 sidebar">
+            <h4 class="my-4 text-center">Gestion de stock</h4>
+            <a th:href="@{/}"> <i class="bi bi-speedometer2"></i>   Dashboard</a>
+            <a th:href="@{/products}"> <i class="bi bi-box-seam"></i>   Produits</a>
+            <a th:href="@{/commandes}"> <i class="bi bi-bag-check"></i>   Commandes</a>
+            <a href="#" class="mt-4"> <i class="bi bi-box-arrow-right"></i>   Logout</a>
+        </div>
+
+        <div class="col-md-10 p-4">
+            <div class="container">
+                <h2>Liste des commandes</h2>
+
+                <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addCommandeModal">
+                    Ajouter une commande
+                </button>
+
+                <table class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th>Commande ID</th>
+                        <th>Nom client</th>
+                        <th>Adresse</th>
+                        <th>Téléphone</th>
+                        <th>Prix total</th>
+                        <th>Produits</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <div th:if="${success}" class="alert alert-success">
+                        <span th:text="${success}"></span>
+                    </div>
+
+                    <div th:if="${error}" class="alert alert-danger">
+                        <span th:text="${error}"></span>
+                    </div>
+
+                    <tr th:each="commande : ${commandes}">
+                        <td th:text="${commande.id}"></td>
+                        <td th:text="${commande.clientInfo.clientName}"></td>
+                        <td th:text="${commande.clientInfo.clientAddress}"></td>
+                        <td th:text="${commande.clientInfo.clientPhoneNumber}"></td>
+                        <td th:text="${commande.prixTotal} + ' FCFA'"></td>
+                        <td>
+                            <ul>
+                                <li th:each="p : ${commande.products}" th:text="${p.libelle}"></li>
+                            </ul>
+                        </td>
+                        <td>
+                            <!-- Détails -->
+                            <a th:href="@{'/commandes/details/' + ${commande.id}}" class="btn btn-info btn-sm mb-1">
+                                <i class="bi bi-eye"></i> Détails
+                            </a>
+
+                            <!-- Facture -->
+                            <a th:href="@{'/commandes/facture/' + ${commande.id}}" class="btn btn-success btn-sm mb-1" target="_blank">
+                                <i class="bi bi-file-earmark-text"></i> Facture
+                            </a>
+
+                            <!-- Supprimer -->
+                            <form th:action="@{'/commandes/delete/' + ${commande.id}}" method="post" style="display:inline;">
+                                <button class="btn btn-danger btn-sm" type="submit"
+                                        onclick="return confirm('Confirmer la suppression ?')">Supprimer
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ✅ MODALE AJOUT -->
+            <div class="modal fade" id="addCommandeModal" tabindex="-1" aria-labelledby="addCommandeLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <form th:action="@{/commandes/add}" method="post">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="addCommandeLabel"><i class="bi bi-plus-circle"></i> Ajouter une commande</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+
+                                <!-- Infos client -->
+                                <div class="mb-3">
+                                    <label>Nom</label>
+                                    <input type="text" name="clientInfo.clientName" class="form-control"/>
+                                </div>
+                                <div class="mb-3">
+                                    <label>Adresse</label>
+                                    <input type="text" name="clientInfo.clientAddress" class="form-control"/>
+                                </div>
+                                <div class="mb-3">
+                                    <label>Téléphone</label>
+                                    <input type="text" name="clientInfo.clientPhoneNumber" class="form-control"/>
+                                </div>
+                                <!-- Produits -->
+                                <div th:each="p : ${products}" class="mb-2 row align-items-center">
+                                    <div class="col-md-1">
+                                        <input type="checkbox" name="productIds" th:value="${p.id}" class="form-check-input" onchange="toggleQuantityInput(this)"/>
+                                    </div>
+                                    <div class="col-md-5" th:text="${p.libelle}"></div>
+                                    <div class="col-md-3">
+                                        <input type="number" name="quantities" class="form-control" min="1" value="1" placeholder="Quantité" disabled/>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-primary">Valider la commande</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ✅ MODALES MODIFIER (Une par commande) -->
+            <div th:each="commande : ${commandes}">
+                <div class="modal fade" th:id="'editCommandeModal__' + ${commande.id}" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <form th:action="@{'/commandes/edit/' + ${commande.id}}" method="post">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Modifier commande</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+
+                                    <input type="hidden" name="id" th:value="${commande.id}"/>
+
+                                    <div class="mb-3">
+                                        <label>Nom</label>
+                                        <input type="text" name="clientInfo.clientName" th:value="${commande.clientInfo.clientName}" class="form-control"/>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label>Adresse</label>
+                                        <input type="text" name="clientInfo.clientAddress" th:value="${commande.clientInfo.clientAddress}" class="form-control"/>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label>Téléphone</label>
+                                        <input type="text" name="clientInfo.clientPhoneNumber" th:value="${commande.clientInfo.clientPhoneNumber}" class="form-control"/>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label>Prix total</label>
+                                        <input type="number" step="0.01" name="prixTotal" th:value="${commande.prixTotal}" class="form-control"/>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label>Produits</label><br/>
+                                        <div th:each="p : ${products}">
+                                            <input type="checkbox" name="productIds"
+                                                   th:value="${p.id}"
+                                                   th:checked="${commande.products.contains(p)}"/>
+                                            <span th:text="${p.libelle}"></span><br/>
+                                        </div>
+                                    </div>
+
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="submit" class="btn btn-warning">Modifier</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.querySelectorAll('.quantity-input').forEach(input => input.style.display = 'none');
+
+    // Sur changement checkbox, afficher/cacher input quantité correspondant
+    document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', e => {
+            const quantityInput = e.target.closest('.row').querySelector('.quantity-input');
+            if (e.target.checked) {
+                quantityInput.style.display = 'block';
+                quantityInput.disabled = false;
+            } else {
+                quantityInput.style.display = 'none';
+                quantityInput.disabled = true;
+                quantityInput.value = 1;
+            }
+        });
+    });
+
+    function toggleQuantityInput(checkbox) {
+
+        const quantityInput = checkbox.closest('.row').querySelector('input[name="quantities"]');
+        if (checkbox.checked) {
+            quantityInput.disabled = false;
+        } else {
+            quantityInput.disabled = true;
+            quantityInput.value = 1;
+        }
+    }
+</script>
+</body>
+</html>
